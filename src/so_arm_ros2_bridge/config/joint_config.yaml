@@ -1,0 +1,58 @@
+# joint_config.yaml
+# Joint limits taken directly from so101_base.xacro <limit> tags.
+# ros_name values match the corrected xacro joint names.
+# motor_name values match LeRobot FeetechMotorsBus keys.
+
+robot:
+  name: "so101_follower"
+  port: "/dev/ttyACM0"
+  calibration_id: "my_arm"
+
+joints:
+  - motor_name: "shoulder_pan"
+    motor_id: 1
+    ros_name: "shoulder_pan_joint"
+    limit_lower_rad: -1.91986
+    limit_upper_rad:  1.91986
+    drive_mode_inverted: false
+    gripper_norm: false
+
+  - motor_name: "shoulder_lift"
+    motor_id: 2
+    ros_name: "shoulder_lift_joint"
+    limit_lower_rad: -1.74533
+    limit_upper_rad:  1.74533
+    drive_mode_inverted: false
+    gripper_norm: false
+
+  - motor_name: "elbow_flex"
+    motor_id: 3
+    ros_name: "elbow_flex_joint"
+    limit_lower_rad: -1.74533
+    limit_upper_rad:  1.5708
+    drive_mode_inverted: false
+    gripper_norm: false
+
+  - motor_name: "wrist_flex"
+    motor_id: 4
+    ros_name: "wrist_flex_joint"
+    limit_lower_rad: -1.65806
+    limit_upper_rad:  1.65806
+    drive_mode_inverted: false
+    gripper_norm: false
+
+  - motor_name: "wrist_roll"
+    motor_id: 5
+    ros_name: "wrist_roll_joint"
+    limit_lower_rad: -2.79253
+    limit_upper_rad:  2.79253
+    drive_mode_inverted: false
+    gripper_norm: false
+
+  - motor_name: "gripper"
+    motor_id: 6
+    ros_name: "gripper_joint"
+    limit_lower_rad: -0.174533
+    limit_upper_rad:  1.74533
+    drive_mode_inverted: false
+    gripper_norm: true
