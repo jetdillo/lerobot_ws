@@ -1,15 +1,14 @@
 # LeRobot MotorBus API to ROS2 JointStateMsg Bridge
 
 
-- LeRobot URDF, Rviz & MoveIt! code forked from [Pavankv92](https://github.com/Pavankv92/lerobot_ws/)
+- Uses LeRobot URDF, Rviz & MoveIt! code forked from [Pavankv92](https://github.com/Pavankv92/lerobot_ws/) for testing/demo
 - Install/Usage docs below
 - See the [Pavankv92](https://github.com/Pavankv92/lerobot_ws/) repo for detailed docs on installation, usage, etc of `lerobot_ws`
 
 ## Features
 
-- ✅ ROS 2 Jazzy compatibility
-- ✅ Compatible with the [lerobot_ws](https://github.com/Pavankv92/lerobot_ws/) ROS2 visualization & control codebase
-- ✅ Provides generalized interface into ROS2 via `/joint_state_publisher`
+- ✅ ROS 2 Jazzy, Humble compatibility
+- ✅ Provides interface into ROS2 via `/joint_state_publisher`
 - 📝 TBD: Generalize to other Feetech-based robot models like Amazing Hand, Open Duck Mini, Reachy Mini, etc.                                                                                                                                                                                                                            
 ## Installation
 
@@ -30,41 +29,34 @@ Clone this repository and install dependencies using [rosdep](https://docs.ros.o
 `colcon build`
 
 ---
-## Rviz
+## Exercise the SO101 URDF in [lerobot_ws](https://github.com/Pavankv92/lerobot_ws/) 
 
-**Summary:** Visualising LeRobot SO101 in Rviz
+
+### Rviz
+
+Launch LeRobot SO101 in Rviz standalone. This is good as a demo of the URDF. Leave it running to test out the bridge node.
 
 `ros2 launch lerobot_description so101_display.launch.py`
 
 ---
 
-## Gazebo and ROS 2 Control
+### Gazebo and ROS 2 Control
 
-**Summary:** Gazebo and ROS 2 Control: Control the gripper
+**Summary:** Gazebo and ROS 2 Control: Control the gripper inside Gazebo 
 
 **Commands:**  
 `ros2 launch lerobot_description so101_gazebo.launch.py`  
 `ros2 launch lerobot_controller so101_controller.launch.py`
 
----
-
-## Gazebo, ROS 2 Control and MoveIt
-
-**Summary:** Gazebo, ROS 2 Control and MoveIt 2: MoveIt planner for the arm and gripper
-
-**Commands:**  
-`ros2 launch lerobot_description so101_gazebo.launch.py`  
-`ros2 launch lerobot_controller so101_controller.launch.py`  
-`ros2 launch lerobot_moveit so101_moveit.launch.py`
-
-**Settings:**
-- select "ompl" planning library for "arm" and "gripper" groups
+[lerobot_ws](https://github.com/Pavankv92/lerobot_ws/) also provides a ROS2 Control interface and interfaces into Gazebo & MoveIt!
+Check out that repo for details on working with those tools as well. 
 
 ## Physical LeRobot  <-> ROS2 JointState Bridge
 
 **Provides Control Interface for visualizing and/or controlling an IRL LeRobot arm in Gazebo,Rviz, etc.**
-- Converts LeRobot MotorBus encoder ticks to ROS2 JointState messages
+- Provides methods to map LeRobot encoder-ticks or percentage actuation values to ROS JointState angular values
 
+## Usage Examples 
 **Control SO-ARM10x in Rviz2:**
 
 `ros2 launch so_arm_ros2_bridge bridge.launch.py port:=/dev/ttyACM0 calibration_path:=$HOME/.cache/huggingface/lerobot/calibration/robots/so101_follower/follower-arm.json mode:=ros_to_robot`
@@ -72,6 +64,8 @@ Clone this repository and install dependencies using [rosdep](https://docs.ros.o
 **Control URDF SO-ARM10x in Rviz2 or Gazebo:**
 
  `ros2 launch so_arm_ros2_bridge bridge.launch.py port:=/dev/ttyACM0 calibration_path:=$HOME/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader/leader_arm.json mode:=robot_to_ros`
+
+
 
 **Example Results:**
 
@@ -94,7 +88,7 @@ ros2 launch so_arm_ros2_bridge bridge.launch.py port:=/dev/ttyACM0 calibration_p
 [bridge_node-2] [INFO] [1775103938.671702041] [so_arm_bridge]: SO-ARM bridge started — mode=robot_to_ros, port=/dev/ttyACM0, read_rate=50.0 Hz, mock=False
 ```
 
-**Confirm /jointstate topic shows message flow:**
+**Confirm /joint_state topic shows message flow:**
 ```
 ros2 topic echo /joint_state
 header:
@@ -117,6 +111,7 @@ position:
 - 0.1334889186140718
 - 0.011302982731554162
 ```
+
 
 ## License
 
