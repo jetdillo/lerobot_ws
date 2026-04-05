@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 TICKS_PER_REV      = 4096          # 12-bit encoder
 DEGREES_PER_TICK   = 360.0 / TICKS_PER_REV   # 0.0879 °/tick
 TICKS_PER_DEGREE   = TICKS_PER_REV / 360.0
+#Use Lerobot SO-ARM10x as defaults
 DEFAULT_MOTOR_IDS  = {
     "shoulder_pan":  1,
     "shoulder_lift": 2,
@@ -23,6 +24,13 @@ DEFAULT_MOTOR_IDS  = {
     "wrist_flex":    4,
     "wrist_roll":    5,
     "gripper":       6,
+}
+
+AH_MOTOR_IDS = {
+    "index_finger":[1,2],
+    "middle_finger":[3,4],
+    "ring_finger":[5,6],
+    "thumb_finger":[7,8],
 }
 
 # P-gain tuned for SO-101 follower to reduce oscillation (default = 32)
@@ -118,45 +126,34 @@ class RobotInterface:
         return {name: math.radians(val) for name, val in deg.items()}
 
     def read_velocities_deg_s(self) -> Dict[str, float]:
+    # Assume STS3215 servos, should be parameterized eventually
+    # STS3215 speed register: signed, units ≈ 0.732 rpm per unit
+    # Convert to deg/s:  unit × 0.732 rpm × 360°/rev / 60s
 
         self._check_connected()
         try:
             raw = self._bus.sync_read("Present_Speed", normalize=False)
-            # STS3215 speed register: signed, units ≈ 0.732 rpm per unit
-            # Convert to deg/s:  unit × 0.732 rpm × 360°/rev / 60s
             return {name: float(v) * 0.732 * 360.0 / 60.0 for name, v in raw.items()}
         except Exception:
             # Velocity read is best-effort; return zeros if unsupported
             return {name: 0.0 for name in self.motor_ids}
 
+    #send goal position(s) in degrees as a dict containing one or more joints
     def write_positions_deg(self, positions: Dict[str, float]) -> None:
-        """
-        Send goal positions (degrees) to one or more joints.
 
-        Parameters
-        ----------
-        positions : dict[str, float]
-            Subset or full set of {joint_name: target_degrees}.
-            Values outside [-180, 180] (or [0, 100] for gripper) are clamped
-            by LeRobot's normalisation layer; hard limits are also enforced
-            in the bridge node before this is called.
-        """
         self._check_connected()
         self._bus.sync_write("Goal_Position", positions, normalize=True)
 
+    #send goal position(s) in radians as a dict containing one or more joints
     def write_positions_rad(self, positions: Dict[str, float]) -> None:
-        """
-        Send goal positions (radians) to one or more body joints.
-        Gripper should be provided in [0, 100] % — pass it as-is to
-        write_positions_deg() after converting other joints.
-        """
+
         deg_positions = {name: math.degrees(val) for name, val in positions.items()}
         self.write_positions_deg(deg_positions)
 
-    # ── Calibration ──────────────────────────────────────────────────────────
-
+    
+    #Load calibration JSON as a dict[str, MotorCalibration]."""
     def _load_calibration(self):
-        """Load calibration JSON as a dict[str, MotorCalibration]."""
+
         try:
             import draccus
             from lerobot.motors import MotorCalibration
@@ -181,8 +178,6 @@ class RobotInterface:
                 calibration = json.load(f)
         return calibration
 
-    # ── Helpers ──────────────────────────────────────────────────────────────
-
     def _check_connected(self) -> None:
         if not self._connected or self._bus is None:
             raise RuntimeError(
@@ -197,18 +192,9 @@ class RobotInterface:
     def __exit__(self, *_):
         self.disconnect()
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Mock interface for unit testing (no hardware required)
-# ──────────────────────────────────────────────────────────────────────────────
-
+#unit testing interface. Might move this to a separate class
+#invoke with `use_mock=True` 
 class MockRobotInterface:
-    """
-    Drop-in replacement for RobotInterface that simulates an arm in software.
-    Used for unit tests and CI pipelines without physical hardware.
-
-    Instantiate the bridge node with `use_mock=True` (see bridge_node.py).
-    """
 
     def __init__(self, motor_names=None):
         self.motor_names = motor_names or list(DEFAULT_MOTOR_IDS.keys())
