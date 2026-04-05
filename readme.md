@@ -9,8 +9,7 @@ LeRobot SO-ARM101 integrated into ROS 2 Jazzy.
 - ✅ Gazebo Harmonic simulation
 - ✅ ROS 2 Control integration
 - ✅ MoveIt 2 motion planning
-- 📝 **TODO:** ROS 2 control interface for the real HW
----
+- 📝 **BETA:** ROS 2 control interface via the so_arm_ros2_bridge                                                                                                                                                                                                                           
 ## Installation
 
 Clone this repository and install dependencies using [rosdep](https://docs.ros.org/en/ros2_packages/rosdep.html):
