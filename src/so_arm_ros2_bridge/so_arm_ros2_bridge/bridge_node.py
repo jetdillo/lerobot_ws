@@ -23,7 +23,7 @@ from .unit_converter import (
     ros_to_lerobot,
     check_joint_limits,
     velocity_guard,
-    gripper_pct_to_rad,
+    pct_to_rad,
 )
 
 
@@ -384,7 +384,7 @@ class SOArmBridgeNode(Node):
         for motor_name, val in deg_map.items():
             lo, hi = motor_limits.get(motor_name, (-math.pi, math.pi))
             if motor_name == GRIPPER_JOINT_NAME:
-                result[motor_name] = gripper_pct_to_rad(val, lo, hi)
+                result[motor_name] = pct_to_rad(val, lo, hi)
             else:
                 result[motor_name] = math.radians(val)
         return result

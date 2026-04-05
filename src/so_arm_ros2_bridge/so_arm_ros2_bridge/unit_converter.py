@@ -8,8 +8,8 @@ from typing import Dict, Tuple
 # ──────────────────────────────────────────────────────────────────────────────
 Radians = float
 Degrees = float
-Percent = float   # [0, 100] — used for gripper only
-
+Percent = float   # [0, 100] — joints that work in percentage actuation like 
+                  # LeRobot gripper "claw" 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Degree / radian fundamentals
@@ -22,26 +22,18 @@ def deg_to_rad(deg: Degrees) -> Radians:
 def rad_to_deg(rad: Radians) -> Degrees:
     return math.degrees(rad)
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Gripper special case
-# ──────────────────────────────────────────────────────────────────────────────
-
-def gripper_pct_to_rad(pct: Percent, joint_min_rad: Radians, joint_max_rad: Radians) -> Radians:
+def pct_to_rad(pct: Percent, joint_min_rad: Radians, joint_max_rad: Radians) -> Radians:
     """
-    Map LeRobot gripper percentage [0, 100] → URDF joint radian range.
-
-    Convention:
-        pct = 0   →  joint_min_rad  (fully closed / tightest position)
-        pct = 100 →  joint_max_rad  (fully open)
+    Map percentage joint actuation to URDF joint radian range.
     """
+
     pct_clamped = max(0.0, min(100.0, pct))
     return joint_min_rad + (pct_clamped / 100.0) * (joint_max_rad - joint_min_rad)
 
 
-def gripper_rad_to_pct(rad: Radians, joint_min_rad: Radians, joint_max_rad: Radians) -> Percent:
+def rad_to_pct(rad: Radians, joint_min_rad: Radians, joint_max_rad: Radians) -> Percent:
     """
-    Map URDF radian value → LeRobot gripper percentage [0, 100].
+    Map URDF joint radian range to percentage joint actuation.
     """
     span = joint_max_rad - joint_min_rad
     if abs(span) < 1e-9:
@@ -49,24 +41,21 @@ def gripper_rad_to_pct(rad: Radians, joint_min_rad: Radians, joint_max_rad: Radi
     pct = (rad - joint_min_rad) / span * 100.0
     return max(0.0, min(100.0, pct))
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Convert a dict of LeRobot-normalised values to ROS2 radians.
+# Presents an atomic way of doing the conversions on a whole LeRobot arm
+# ──────────────────────────────────────────────────────────────────────────────
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Full-arm batch conversions
-# ──────────────────────────────────────────────────────────────────────────────
+    """
+    Convert a dict of LeRobot-normalised values to ROS2 radians.
+    """
 
 def lerobot_to_ros(
     positions_deg: Dict[str, float],
     joint_limits: Dict[str, Tuple[float, float]],  # {name: (min_rad, max_rad)}
     gripper_name: str = "gripper",
 ) -> Dict[str, float]:
-    """
-    Convert a dict of LeRobot-normalised values to ROS2 radians.
 
-    Body joints:  degrees → radians, then clamped to URDF limits.
-    Gripper joint: percent [0,100] → radians via linear interpolation.
-
-    Returns dict {joint_name: radians}.
-    """
     result: Dict[str, float] = {}
     for name, value in positions_deg.items():
         if name in joint_limits:
@@ -75,7 +64,7 @@ def lerobot_to_ros(
             lo, hi = -math.pi, math.pi   # safe fallback
 
         if name == gripper_name:
-            rad = gripper_pct_to_rad(value, lo, hi)
+            rad = pct_to_rad(value, lo, hi)
         else:
             rad = deg_to_rad(value)
             rad = max(lo, min(hi, rad))
@@ -83,20 +72,14 @@ def lerobot_to_ros(
         result[name] = rad
     return result
 
-
-def ros_to_lerobot(
-    positions_rad: Dict[str, float],
+"""
+Convert a Dict of ROS2 radians to LeRobot-normalised values 
+""" 
+def ros_to_lerobot( positions_rad: Dict[str, float],
     joint_limits: Dict[str, Tuple[float, float]],
     gripper_name: str = "gripper",
 ) -> Dict[str, float]:
-    """
-    Convert ROS2 radians to LeRobot-normalised values.
 
-    Body joints:  radians → degrees, clamped to URDF limits.
-    Gripper joint: radians → percentage [0, 100].
-
-    Returns dict {joint_name: degrees_or_percent}.
-    """
     result: Dict[str, float] = {}
     for name, rad in positions_rad.items():
         if name in joint_limits:
@@ -108,14 +91,15 @@ def ros_to_lerobot(
         rad_clamped = max(lo, min(hi, rad))
 
         if name == gripper_name:
-            result[name] = gripper_rad_to_pct(rad_clamped, lo, hi)
+            result[name] = rad_to_pct(rad_clamped, lo, hi)
         else:
             result[name] = rad_to_deg(rad_clamped)
     return result
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Safety checks
+#    Return (ok, message).  ok=False if any joint is outside its URDF limits.
+#    `tolerance` (radians) allows small numerical overshoot from float conversion.
 # ──────────────────────────────────────────────────────────────────────────────
 
 def check_joint_limits(
@@ -123,10 +107,7 @@ def check_joint_limits(
     joint_limits: Dict[str, Tuple[float, float]],
     tolerance: float = 1e-3,
 ) -> Tuple[bool, str]:
-    """
-    Return (ok, message).  ok=False if any joint is outside its URDF limits.
-    `tolerance` (radians) allows small numerical overshoot from float conversion.
-    """
+
     violations = []
     for name, rad in positions_rad.items():
         if name not in joint_limits:
@@ -140,7 +121,6 @@ def check_joint_limits(
     if violations:
         return False, "Joint limit violations:\n" + "\n".join(violations)
     return True, ""
-
 
 def velocity_guard(
     current_rad: Dict[str, float],
